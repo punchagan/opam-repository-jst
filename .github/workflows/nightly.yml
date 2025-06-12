@@ -1,10 +1,8 @@
 ---
 on:
   workflow_dispatch:
+  # FIXME: Build on all pushes to this branch for debug runs
   push:
-    branches:
-      - master
-      - with-extensions
   schedule:
     - cron: "30 0 * * *"
 
