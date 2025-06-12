@@ -21,40 +21,18 @@ jobs:
           repository: janestreet/opam-repository
           ref: with-extensions
 
+      - name: Checkout .github for the test.sh script
+        uses: actions/checkout@v4
+        with:
+          path: scripts
+          sparse-checkout: |
+            .github/workflows/test.sh
+          sparse-checkout-cone-mode: false
+
       - name: Get latest commit hash
         id: with-extensions-rev
         run: |
           HASH=$(git rev-parse HEAD)
           echo "hash=${HASH}" >> "$GITHUB_OUTPUT"
-
-      - name: Install autoconf on macOS
-        if: startsWith(matrix.os, 'macos')
-        run: brew install autoconf
-
-      - uses: ocaml/setup-ocaml@v3
-        with:
-          # Invalidate cache when with-extensions has new commits, since the
-          # archive URL in the opam file for 5.2.0+flambda2 might have changed.
-          cache-prefix: ${{ steps.with-extensions-rev.outputs.hash }}
-          ocaml-compiler: ocaml-variants.5.2.0+flambda2
-          opam-pin: false
-          opam-repositories: |
-            with-extensions: git+https://github.com/janestreet/opam-repository.git#with-extensions
-            default: https://github.com/ocaml/opam-repository.git
-
-      - name: Find and install latest packages
-        run: |
-          opam --version
-          opam repository list
-          opam list
-          PACKAGES=("ocamlformat" "merlin" "ocaml-lsp-server" "utop")
-          PKGS=""
-          for pkg in "${PACKAGES[@]}"; do
-            latest=$(find packages/$pkg -type f -name 'opam' \
-                      | grep '+jst' | sed -E 's|.*/([^/]+)/opam|\1|' \
-                      | sort -V | tail -1)
-            PKGS="$PKGS $latest"
-          done
-          echo "Installing:$PKGS"
-          opam install $PKGS
-          opam list
+          ls -lah .
+          ls -lah scripts/.github/workflows
