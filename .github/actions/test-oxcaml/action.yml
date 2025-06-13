@@ -8,13 +8,64 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Install required packages on Linux
+      shell: sh
+      run: |
+        set -e
+        if [ "$(uname)" = "Linux" ]; then
+          if [ -f /etc/os-release ]; then
+            . /etc/os-release
+            echo "Detected Linux distro: $ID"
+            case "$ID" in
+              ubuntu|debian)
+                apt-get update
+                DEBIAN_FRONTEND=noninteractive apt-get install -y \
+                    build-essential curl git rsync sudo unzip nano
+                ;;
+              alpine)
+                apk update
+                apk add build-base patch tar ca-certificates git rsync curl \
+                    sudo bash nano coreutils xz
+                ;;
+              arch)
+                pacman -Sy --noconfirm make gcc patch tar ca-certificates git \
+                    rsync curl sudo bash nano coreutils xz ncurses diffutils \
+                    unzip
+                ;;
+              *)
+                echo "Unsupported Linux distro: $ID"
+                exit 1
+                ;;
+            esac
+          else
+            echo "Missing /etc/os-release on Linux?"
+            exit 1
+          fi
+        else
+          # Installing autoconf beforehand prevents recompilation of the
+          # compiler when restoring from the cache
+          brew install autoconf
+        fi
+
     - name: Get hash of the ocaml-variant opam file
       id: hash-opam-file
       shell: bash
       env:
         OCAML_COMPILER: ${{ inputs.ocaml-compiler }}
       run: |
-        HASH=$(shasum -a 256 packages/ocaml-variants/${OCAML_COMPILER}/opam | awk '{print $1}')
+        set -e
+        OPAM_FILE="packages/ocaml-variants/${OCAML_COMPILER}/opam"
+
+        if command -v sha256sum >/dev/null 2>&1; then
+          COMMAND="sha256sum"
+        elif command -v shasum >/dev/null 2>&1; then
+          COMMAND="shasum -a 256"
+        else
+          echo "ERROR: Neither sha256sum nor shasum is available." >&2
+          exit 1
+        fi
+
+        HASH=$($COMMAND "$OPAM_FILE" | awk '{print $1}')
         echo "hash=${HASH}" >> "$GITHUB_OUTPUT"
 
     - uses: ocaml/setup-ocaml@v3
