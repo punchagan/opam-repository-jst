@@ -10,11 +10,39 @@ on:
       - with-extensions
 
 jobs:
-  test-setup:
+  test-linux:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm, macos-13, macos-latest]
+        os: [ubuntu-latest, ubuntu-24.04-arm]
+        image:
+          [
+            ubuntu:24.04,
+            debian:bookworm,
+            alpine:3.22,
+            archlinux/archlinux:latest,
+          ]
+    runs-on: ${{ matrix.os }}
+    container:
+      image: ${{ matrix.image }}
+    steps:
+      - name: Check OS info
+        run: |
+          uname -a
+
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Run Test OxCaml action
+        uses: ./.github/actions/test-oxcaml
+        with:
+          ocaml-compiler: ocaml-variants.5.2.0+ox
+
+  test-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-13, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout the repository
