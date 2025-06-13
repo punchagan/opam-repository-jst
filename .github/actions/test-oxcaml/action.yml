@@ -1,0 +1,36 @@
+---
+name: Setup OxCaml with a predefined set of opam packages
+inputs:
+  ocaml-compiler:
+    description: The OCaml compiler switch to install
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Get hash of the ocaml-variant opam file
+      id: hash-opam-file
+      shell: bash
+      env:
+        OCAML_COMPILER: ${{ inputs.ocaml-compiler }}
+      run: |
+        HASH=$(shasum -a 256 packages/ocaml-variants/${OCAML_COMPILER}/opam | awk '{print $1}')
+        echo "hash=${HASH}" >> "$GITHUB_OUTPUT"
+
+    - uses: ocaml/setup-ocaml@v3
+      with:
+        cache-prefix: ${{ steps.hash-opam-file.outputs.hash }}
+        ocaml-compiler: ${{ inputs.ocaml-compiler }}
+        opam-pin: false
+        opam-repositories: |
+          with-extensions: .
+          default: https://github.com/ocaml/opam-repository.git
+
+    - name: Install common opam packages
+      shell: bash
+      run: |
+        opam --version
+        opam repository list
+        opam list
+        opam install ocamlformat merlin ocaml-lsp-server utop
+        opam list
