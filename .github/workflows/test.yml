@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - with-extensions
+      - gha-*
   pull_request:
     branches:
       - with-extensions
